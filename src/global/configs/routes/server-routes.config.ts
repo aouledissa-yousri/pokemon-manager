@@ -6,5 +6,4 @@ export const ServerRoutesConfig = Object.freeze({
     POKEDEX_MOVES: "/api/pokedex/moves",
     POKEDEX_ABILITIES: "/api/pokedex/abilities",
     POKEDEX_ITEMS: "/api/pokedex/items",
-    UPLOADS: "/api/uploads",
 })

@@ -3,4 +3,5 @@ export interface PageHeaderComponentProps {
     readonly title: string
     readonly subtitle?: string
     readonly action?: React.ReactNode
+    readonly backAction?: React.ReactNode
 }

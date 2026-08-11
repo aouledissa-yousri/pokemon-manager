@@ -146,19 +146,20 @@ export default function TrainerDetailPage() {
     return (
         <Container maxWidth="lg" sx={{ py: 6 }}>
 
-            <Button
-                startIcon={<ArrowBackRoundedIcon />}
-                color="inherit"
-                onClick={() => router.push(ClientRoutesConfig.TRAINERS)}
-                sx={{ mb: 2, opacity: 0.7, "&:hover": { opacity: 1 } }}
-            >
-                All Trainers
-            </Button>
-
             <PageHeaderComponent
                 label="Trainer Roster"
                 title={trainer?.name ?? "…"}
                 subtitle={`${spaces.length} ${spaces.length === 1 ? "space" : "spaces"} · ${pokemonCount} Pokemon`}
+                backAction={
+                    <Button
+                        startIcon={<ArrowBackRoundedIcon />}
+                        color="inherit"
+                        onClick={() => router.push(ClientRoutesConfig.TRAINERS)}
+                        sx={{ opacity: 0.7, "&:hover": { opacity: 1 } }}
+                    >
+                        All Trainers
+                    </Button>
+                }
                 action={
                     <Button
                         variant="contained"

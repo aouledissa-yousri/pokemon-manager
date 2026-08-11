@@ -1,9 +1,9 @@
 import { ApiResponseWrapper } from "../../../shared/DTOs/wrappers/api-response.wrapper"
 import { ApiResponseFactory } from "../../../shared/factories/api-response.factory"
-import { LocalStorageExternalGateway } from "../../../shared/external-gateways/local-storage.external-gateway"
+import { IpfsExternalGateway } from "../../../shared/external-gateways/ipfs.external-gateway"
 import { FileHelper } from "../../../shared/helpers/file.helper"
 import { TrainerModel, TrainerWithCountDocument } from "../models/trainer.model"
-import { TrainerStorageConfig } from "../configs/trainer-storage.config"
+import { TrainerIpfsConfig } from "../configs/trainer-ipfs.config"
 import { TrainerApiResponse } from "../DTOs/api-responses/trainer.api-response"
 import { TrainerMapper } from "../DTOs/mappers/trainer.mapper"
 
@@ -67,8 +67,6 @@ export const trainerService: _TrainerService = Object.freeze({
             const updated = await trainer.update()
             if (!updated) return ApiResponseFactory.failure(404, "Trainer not found")
 
-            if (newImage && record.image) LocalStorageExternalGateway.delete(record.image)
-
             const pokemonCount = await TrainerModel.getPokemonCount(trainerId)
             return ApiResponseFactory.success(TrainerMapper.mapToApiResponse(updated, pokemonCount), "Trainer updated")
         } catch {
@@ -82,7 +80,6 @@ export const trainerService: _TrainerService = Object.freeze({
             if (!record) return ApiResponseFactory.failure(404, "Trainer not found")
 
             await new TrainerModel(record).delete()
-            if (record.image) LocalStorageExternalGateway.delete(record.image)
 
             return ApiResponseFactory.success(null, "Trainer removed")
         } catch {
@@ -91,10 +88,10 @@ export const trainerService: _TrainerService = Object.freeze({
     },
 
     uploadTrainerImage: async (imageFile: File) => {
-        const key = LocalStorageExternalGateway.createKey(
-            [TrainerStorageConfig.FOLDER, `${Date.now()}`],
+        const key = IpfsExternalGateway.createKey(
+            [TrainerIpfsConfig.FOLDER, `${Date.now()}`],
             FileHelper.getFileExtension(imageFile),
         )
-        return LocalStorageExternalGateway.upload(imageFile, key)
+        return IpfsExternalGateway.upload(imageFile, key)
     },
 })
