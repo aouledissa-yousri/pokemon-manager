@@ -1,0 +1,16 @@
+export const PokemonDefaultsConfig = Object.freeze({
+    DEFAULT_LEVEL: 50,
+    MIN_LEVEL: 1,
+    MAX_LEVEL: 100,
+    DEFAULT_IV: 31,
+    MIN_IV: 0,
+    MAX_IV: 31,
+    DEFAULT_EV: 0,
+    MIN_EV: 0,
+    MAX_EV: 252,
+    EV_STEP: 4,
+    MOVE_SLOT_COUNT: 4,
+    MAX_BASE_STAT: 255,
+    MAX_CALCULATED_STAT: 714,
+    MAX_BASE_STAT_TOTAL: 720,
+})
