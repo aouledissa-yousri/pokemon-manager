@@ -15,6 +15,7 @@ interface _TrainerService {
     readonly editTrainer: (trainerId: number, name: string | null, imageFile: File | null) => Promise<ApiResponseWrapper<TrainerApiResponse | null>>
     readonly removeTrainer: (trainerId: number) => Promise<ApiResponseWrapper<null>>
     readonly uploadTrainerImage: (imageFile: File) => Promise<string>
+    readonly reorderTrainers: (orderedIds: number[]) => Promise<ApiResponseWrapper<null>>
 }
 
 
@@ -93,5 +94,14 @@ export const trainerService: _TrainerService = Object.freeze({
             FileHelper.getFileExtension(imageFile),
         )
         return IpfsExternalGateway.upload(imageFile, key)
+    },
+
+    reorderTrainers: async (orderedIds: number[]) => {
+        try {
+            await TrainerModel.reorder(orderedIds)
+            return ApiResponseFactory.success(null, "Trainers reordered")
+        } catch {
+            return ApiResponseFactory.failure(500, "Failed to reorder trainers")
+        }
     },
 })

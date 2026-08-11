@@ -13,6 +13,7 @@ interface _SpaceProxy {
     readonly addSpace: (addSpaceInput: AddSpaceInput) => Promise<ApiResponseWrapper<SpaceApiResponse | null>>
     readonly editSpace: (editSpaceInput: EditSpaceInput) => Promise<ApiResponseWrapper<SpaceApiResponse | null>>
     readonly removeSpace: (spaceId: number) => Promise<ApiResponseWrapper<null>>
+    readonly reorderSpaces: (trainerId: number, orderedIds: number[]) => Promise<ApiResponseWrapper<null>>
 }
 
 
@@ -36,6 +37,11 @@ export const spaceProxy: _SpaceProxy = Object.freeze({
 
     removeSpace: async (spaceId: number) => {
         const response = await spaceApi.delete(`/${spaceId}`)
+        return response.data
+    },
+
+    reorderSpaces: async (trainerId: number, orderedIds: number[]) => {
+        const response = await spaceApi.patch("/reorder", { trainerId, orderedIds })
         return response.data
     },
 })

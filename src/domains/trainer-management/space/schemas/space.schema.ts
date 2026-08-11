@@ -10,6 +10,7 @@ export const SpaceSchema = sqliteTable("spaces", {
 
     name: text("name").notNull().default(""),
     metLocation: text("met_location").notNull().default(""),
+    sortOrder: integer("sort_order").notNull().default(0),
 
     createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
     updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),

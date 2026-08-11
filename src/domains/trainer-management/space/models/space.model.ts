@@ -40,7 +40,18 @@ export class SpaceModel extends PersistenceModel<SpaceDocument> {
             .select()
             .from(SpaceSchema)
             .where(eq(SpaceSchema.trainerId, trainerId))
-            .orderBy(asc(SpaceSchema.id))
+            .orderBy(asc(SpaceSchema.sortOrder))
             .all()
+    }
+
+    public static async reorder(spaceIds: number[]): Promise<void> {
+
+        const db = DatabaseFactory.getDatabase()
+
+        db.transaction((tx) => {
+            spaceIds.forEach((id, index) => {
+                tx.update(SpaceSchema).set({ sortOrder: index }).where(eq(SpaceSchema.id, id)).run()
+            })
+        })
     }
 }

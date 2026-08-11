@@ -15,6 +15,7 @@ interface _SpaceService {
     readonly addSpace: (addSpaceInput: AddSpaceInput) => Promise<ApiResponseWrapper<SpaceApiResponse | null>>
     readonly editSpace: (editSpaceInput: EditSpaceInput) => Promise<ApiResponseWrapper<SpaceApiResponse | null>>
     readonly removeSpace: (spaceId: number) => Promise<ApiResponseWrapper<null>>
+    readonly reorderSpaces: (trainerId: number, orderedIds: number[]) => Promise<ApiResponseWrapper<null>>
 }
 
 
@@ -88,6 +89,23 @@ export const spaceService: _SpaceService = Object.freeze({
             return ApiResponseFactory.success(null, "Space removed")
         } catch {
             return ApiResponseFactory.failure(500, "Failed to remove space")
+        }
+    },
+
+    reorderSpaces: async (trainerId: number, orderedIds: number[]) => {
+        try {
+            const existingSpaces = await SpaceModel.findByTrainerId(trainerId)
+            const existingIds = new Set(existingSpaces.map(space => space.id))
+
+            const isValidPermutation = orderedIds.length === existingIds.size
+                && orderedIds.every(id => existingIds.has(id))
+
+            if (!isValidPermutation) return ApiResponseFactory.failure(400, "orderedIds must match the trainer's spaces exactly")
+
+            await SpaceModel.reorder(orderedIds)
+            return ApiResponseFactory.success(null, "Spaces reordered")
+        } catch {
+            return ApiResponseFactory.failure(500, "Failed to reorder spaces")
         }
     },
 })

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { Box, Button, Container, Skeleton } from "@mui/material"
 import AddRoundedIcon from "@mui/icons-material/AddRounded"
 import CatchingPokemonRoundedIcon from "@mui/icons-material/CatchingPokemonRounded"
+import { DndContext, DragEndEvent, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core"
+import { SortableContext, arrayMove, rectSortingStrategy } from "@dnd-kit/sortable"
 
 import { trainerProxy } from "@/src/domains/trainer-management/trainer/proxies/trainer.proxy"
 import { useTrainerStore } from "@/src/domains/trainer-management/trainer/store/trainer.store"
@@ -12,6 +14,7 @@ import { TrainerApiResponse } from "@/src/domains/trainer-management/trainer/DTO
 import { PageHeaderComponent } from "@/src/domains/shared/components/page-header/page-header.component"
 import { EmptyStateComponent } from "@/src/domains/shared/components/empty-state/empty-state.component"
 import { ConfirmDialogComponent } from "@/src/domains/shared/components/confirm-dialog/confirm.dialog.component"
+import { SortableItemComponent } from "@/src/domains/shared/components/sortable-item/sortable-item.component"
 import { useToast } from "@/src/global/contexts/toast.context"
 import { ClientRoutesConfig } from "@/src/global/configs/routes/client-routes.config"
 import { TrainerCardComponent } from "./components/trainer-card/trainer-card.component"
@@ -30,9 +33,12 @@ export default function TrainersPage() {
     const isLoading = useTrainerStore(state => state.isLoading)
 
     const setTrainers = useTrainerStore(state => state.setTrainers)
+    const reorderTrainersInStore = useTrainerStore(state => state.reorderTrainers)
     const setError = useTrainerStore(state => state.setError)
 
     const [trainerToRemove, setTrainerToRemove] = useState<TrainerApiResponse | null>(null)
+
+    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
     const fetchTrainers = useCallback(async () => {
 
@@ -72,6 +78,27 @@ export default function TrainersPage() {
         }
 
         setTrainerToRemove(null)
+    }
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+
+        const { active, over } = event
+        if (!over || active.id === over.id) return
+
+        const oldIndex = trainers.findIndex(trainer => trainer.id === active.id)
+        const newIndex = trainers.findIndex(trainer => trainer.id === over.id)
+        if (oldIndex === -1 || newIndex === -1) return
+
+        const reordered = arrayMove(trainers, oldIndex, newIndex)
+        const orderedIds = reordered.map(trainer => trainer.id)
+
+        reorderTrainersInStore(orderedIds)
+
+        const response = await trainerProxy.reorderTrainers(orderedIds)
+        if (!response.success) {
+            toast.show(response.message, "error")
+            fetchTrainers()
+        }
     }
 
     return (
@@ -120,17 +147,22 @@ export default function TrainersPage() {
             }
 
             {!isLoading && trainers.length > 0 &&
-                <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 3 }}>
-                    {trainers.map(trainer => (
-                        <TrainerCardComponent
-                            key={trainer.id}
-                            trainer={trainer}
-                            onOpen={() => router.push(ClientRoutesConfig.TRAINER_DETAIL(trainer.id))}
-                            onEdit={() => useEditTrainerDialogStore.getState().openDialog(trainer)}
-                            onRemove={() => setTrainerToRemove(trainer)}
-                        />
-                    ))}
-                </Box>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={trainers.map(trainer => trainer.id)} strategy={rectSortingStrategy}>
+                        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 3 }}>
+                            {trainers.map(trainer => (
+                                <SortableItemComponent key={trainer.id} id={trainer.id}>
+                                    <TrainerCardComponent
+                                        trainer={trainer}
+                                        onOpen={() => router.push(ClientRoutesConfig.TRAINER_DETAIL(trainer.id))}
+                                        onEdit={() => useEditTrainerDialogStore.getState().openDialog(trainer)}
+                                        onRemove={() => setTrainerToRemove(trainer)}
+                                    />
+                                </SortableItemComponent>
+                            ))}
+                        </Box>
+                    </SortableContext>
+                </DndContext>
             }
 
             {/* Dialogs — mounted once, self-contained via Zustand stores */}

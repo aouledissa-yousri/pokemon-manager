@@ -12,6 +12,7 @@ interface TrainerStore {
 
     // Actions
     setTrainers: (trainers: TrainerApiResponse[]) => void
+    reorderTrainers: (orderedIds: number[]) => void
     setIsLoading: (isLoading: boolean) => void
     setError: (error: string | null) => void
 }
@@ -24,6 +25,12 @@ export const useTrainerStore = create<TrainerStore>((set) => ({
     error: null,
 
     setTrainers: (trainers) => set({ trainers, isLoading: false, error: null }),
+
+    reorderTrainers: (orderedIds) => set(state => {
+        const byId = new Map(state.trainers.map(trainer => [trainer.id, trainer]))
+        return { trainers: orderedIds.map(id => byId.get(id)).filter((trainer): trainer is TrainerApiResponse => !!trainer) }
+    }),
+
     setIsLoading: (isLoading) => set({ isLoading }),
     setError: (error) => set({ error, isLoading: false }),
 }))

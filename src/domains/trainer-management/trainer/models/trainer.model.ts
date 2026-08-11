@@ -48,6 +48,7 @@ export class TrainerModel extends PersistenceModel<TrainerDocument> {
                 id: TrainerSchema.id,
                 name: TrainerSchema.name,
                 image: TrainerSchema.image,
+                sortOrder: TrainerSchema.sortOrder,
                 createdAt: TrainerSchema.createdAt,
                 updatedAt: TrainerSchema.updatedAt,
                 pokemonCount: count(PokemonSchema.id),
@@ -56,7 +57,7 @@ export class TrainerModel extends PersistenceModel<TrainerDocument> {
             .leftJoin(SpaceSchema, eq(SpaceSchema.trainerId, TrainerSchema.id))
             .leftJoin(PokemonSchema, eq(PokemonSchema.spaceId, SpaceSchema.id))
             .groupBy(TrainerSchema.id)
-            .orderBy(TrainerSchema.createdAt)
+            .orderBy(TrainerSchema.sortOrder)
             .all()
     }
 
@@ -70,5 +71,16 @@ export class TrainerModel extends PersistenceModel<TrainerDocument> {
             .get()
 
         return row?.value ?? 0
+    }
+
+    public static async reorder(orderedIds: number[]): Promise<void> {
+
+        const db = DatabaseFactory.getDatabase()
+
+        db.transaction((tx) => {
+            orderedIds.forEach((id, index) => {
+                tx.update(TrainerSchema).set({ sortOrder: index }).where(eq(TrainerSchema.id, id)).run()
+            })
+        })
     }
 }

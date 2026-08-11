@@ -6,6 +6,8 @@ import { Box, Button, Container, Skeleton } from "@mui/material"
 import AddRoundedIcon from "@mui/icons-material/AddRounded"
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded"
 import CatchingPokemonRoundedIcon from "@mui/icons-material/CatchingPokemonRounded"
+import { DndContext, DragEndEvent, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core"
+import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable"
 
 import { trainerProxy } from "@/src/domains/trainer-management/trainer/proxies/trainer.proxy"
 import { TrainerApiResponse } from "@/src/domains/trainer-management/trainer/DTOs/api-responses/trainer.api-response"
@@ -19,6 +21,7 @@ import { NameFormatHelper } from "@/src/domains/pokedex/shared/helpers/name-form
 import { PageHeaderComponent } from "@/src/domains/shared/components/page-header/page-header.component"
 import { EmptyStateComponent } from "@/src/domains/shared/components/empty-state/empty-state.component"
 import { ConfirmDialogComponent } from "@/src/domains/shared/components/confirm-dialog/confirm.dialog.component"
+import { SortableItemComponent } from "@/src/domains/shared/components/sortable-item/sortable-item.component"
 import { useToast } from "@/src/global/contexts/toast.context"
 import { ClientRoutesConfig } from "@/src/global/configs/routes/client-routes.config"
 import { SpaceSectionComponent } from "./components/space-section/space-section.component"
@@ -54,9 +57,12 @@ export default function TrainerDetailPage() {
     const upsertPokemon = useSpaceStore(state => state.upsertPokemon)
     const removePokemonFromStore = useSpaceStore(state => state.removePokemon)
     const removeSpaceFromStore = useSpaceStore(state => state.removeSpace)
+    const reorderSpacesInStore = useSpaceStore(state => state.reorderSpaces)
     const clearStore = useSpaceStore(state => state.clearStore)
 
     const pokemonCount = spaces.reduce((sum, space) => sum + space.pokemon.length, 0)
+
+    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
     const fetchSpaces = useCallback(async () => {
 
@@ -143,6 +149,27 @@ export default function TrainerDetailPage() {
         setSpaceToRemove(null)
     }
 
+    const handleSpaceDragEnd = async (event: DragEndEvent) => {
+
+        const { active, over } = event
+        if (!over || active.id === over.id) return
+
+        const oldIndex = spaces.findIndex(space => space.id === active.id)
+        const newIndex = spaces.findIndex(space => space.id === over.id)
+        if (oldIndex === -1 || newIndex === -1) return
+
+        const reordered = arrayMove(spaces, oldIndex, newIndex)
+        const orderedIds = reordered.map(space => space.id)
+
+        reorderSpacesInStore(orderedIds)
+
+        const response = await spaceProxy.reorderSpaces(trainerId, orderedIds)
+        if (!response.success) {
+            toast.show(response.message, "error")
+            fetchSpaces()
+        }
+    }
+
     return (
         <Container maxWidth="lg" sx={{ py: 6 }}>
 
@@ -199,21 +226,26 @@ export default function TrainerDetailPage() {
             }
 
             {!isLoading && spaces.length > 0 &&
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                    {spaces.map(space => (
-                        <SpaceSectionComponent
-                            key={space.id}
-                            space={space}
-                            onAddPokemon={() => useAddPokemonDialogStore.getState().openDialog(space.id)}
-                            onEditSpace={() => useEditSpaceDialogStore.getState().openDialog(space)}
-                            onRemoveSpace={() => setSpaceToRemove(space)}
-                            onEditPokemon={(pokemon) => useEditPokemonDialogStore.getState().openDialog(pokemon)}
-                            onCopyPokemon={(pokemon) => useCopyPokemonDialogStore.getState().openDialog(pokemon)}
-                            onRemovePokemon={(pokemon) => setPokemonToRemove(pokemon)}
-                            onToggleShiny={handleToggleShiny}
-                        />
-                    ))}
-                </Box>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSpaceDragEnd}>
+                    <SortableContext items={spaces.map(space => space.id)} strategy={verticalListSortingStrategy}>
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                            {spaces.map(space => (
+                                <SortableItemComponent key={space.id} id={space.id}>
+                                    <SpaceSectionComponent
+                                        space={space}
+                                        onAddPokemon={() => useAddPokemonDialogStore.getState().openDialog(space.id)}
+                                        onEditSpace={() => useEditSpaceDialogStore.getState().openDialog(space)}
+                                        onRemoveSpace={() => setSpaceToRemove(space)}
+                                        onEditPokemon={(pokemon) => useEditPokemonDialogStore.getState().openDialog(pokemon)}
+                                        onCopyPokemon={(pokemon) => useCopyPokemonDialogStore.getState().openDialog(pokemon)}
+                                        onRemovePokemon={(pokemon) => setPokemonToRemove(pokemon)}
+                                        onToggleShiny={handleToggleShiny}
+                                    />
+                                </SortableItemComponent>
+                            ))}
+                        </Box>
+                    </SortableContext>
+                </DndContext>
             }
 
             {/* Dialogs — mounted once, self-contained via Zustand stores */}

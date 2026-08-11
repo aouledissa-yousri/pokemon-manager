@@ -14,6 +14,7 @@ interface TrainerProxy {
     readonly addTrainer: (addTrainerInput: AddTrainerInput) => Promise<ApiResponseWrapper<TrainerApiResponse | null>>
     readonly editTrainer: (editTrainerInput: EditTrainerInput) => Promise<ApiResponseWrapper<TrainerApiResponse | null>>
     readonly removeTrainer: (trainerId: number) => Promise<ApiResponseWrapper<null>>
+    readonly reorderTrainers: (orderedIds: number[]) => Promise<ApiResponseWrapper<null>>
 }
 
 
@@ -49,6 +50,11 @@ export const trainerProxy: TrainerProxy = Object.freeze({
 
     removeTrainer: async (trainerId: number) => {
         const response = await trainerApi.delete(`/${trainerId}`)
+        return response.data
+    },
+
+    reorderTrainers: async (orderedIds: number[]) => {
+        const response = await trainerApi.patch("/reorder", { orderedIds })
         return response.data
     },
 })

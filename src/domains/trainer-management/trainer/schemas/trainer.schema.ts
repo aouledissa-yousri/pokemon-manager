@@ -6,6 +6,7 @@ export const TrainerSchema = sqliteTable("trainers", {
     id: integer("id").primaryKey({ autoIncrement: true }),
     name: text("name").notNull(),
     image: text("image"),
+    sortOrder: integer("sort_order").notNull().default(0),
     createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
     updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
 })

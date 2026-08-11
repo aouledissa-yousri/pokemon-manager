@@ -15,6 +15,7 @@ interface SpaceStore {
     // Actions
     setSpaces: (trainerId: number, spaces: SpaceApiResponse[]) => void
     upsertSpace: (space: SpaceApiResponse) => void
+    reorderSpaces: (orderedIds: number[]) => void
     removeSpace: (spaceId: number) => void
     upsertPokemon: (pokemon: PokemonApiResponse) => void
     removePokemon: (pokemonId: number) => void
@@ -39,6 +40,11 @@ export const useSpaceStore = create<SpaceStore>((set) => ({
                 ? state.spaces.map(entry => entry.id === space.id ? { ...space, pokemon: entry.pokemon } : entry)
                 : [...state.spaces, space],
         }
+    }),
+
+    reorderSpaces: (orderedIds) => set(state => {
+        const byId = new Map(state.spaces.map(space => [space.id, space]))
+        return { spaces: orderedIds.map(id => byId.get(id)).filter((space): space is SpaceApiResponse => !!space) }
     }),
 
     removeSpace: (spaceId) => set(state => ({
