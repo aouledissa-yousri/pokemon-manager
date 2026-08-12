@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm"
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
+import { AnySQLiteColumn, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
 
 import { TrainerSchema } from "../../trainer/schemas/trainer.schema"
 
@@ -7,6 +7,7 @@ import { TrainerSchema } from "../../trainer/schemas/trainer.schema"
 export const SpaceSchema = sqliteTable("spaces", {
     id: integer("id").primaryKey({ autoIncrement: true }),
     trainerId: integer("trainer_id").notNull().references(() => TrainerSchema.id, { onDelete: "cascade" }),
+    parentSpaceId: integer("parent_space_id").references((): AnySQLiteColumn => SpaceSchema.id, { onDelete: "cascade" }),
 
     name: text("name").notNull().default(""),
     metLocation: text("met_location").notNull().default(""),
@@ -16,6 +17,7 @@ export const SpaceSchema = sqliteTable("spaces", {
     updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
 }, (table) => [
     index("idx_spaces_trainer_id").on(table.trainerId),
+    index("idx_spaces_parent_space_id").on(table.parentSpaceId),
 ])
 
 export type SpaceDocument = typeof SpaceSchema.$inferSelect

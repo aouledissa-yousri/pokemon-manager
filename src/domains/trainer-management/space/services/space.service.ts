@@ -7,6 +7,7 @@ import { SpaceMapper } from "../DTOs/mappers/space.mapper"
 import { AddSpaceInput } from "../DTOs/inputs/add-space.input"
 import { EditSpaceInput } from "../DTOs/inputs/edit-space.input"
 import { PokemonModel } from "../../../pokemon-management/pokemon/models/pokemon.model"
+import { PokemonApiResponse } from "../../../pokemon-management/pokemon/DTOs/api-responses/pokemon.api-response"
 import { PokemonMapper } from "../../../pokemon-management/pokemon/DTOs/mappers/pokemon.mapper"
 
 
@@ -15,7 +16,7 @@ interface _SpaceService {
     readonly addSpace: (addSpaceInput: AddSpaceInput) => Promise<ApiResponseWrapper<SpaceApiResponse | null>>
     readonly editSpace: (editSpaceInput: EditSpaceInput) => Promise<ApiResponseWrapper<SpaceApiResponse | null>>
     readonly removeSpace: (spaceId: number) => Promise<ApiResponseWrapper<null>>
-    readonly reorderSpaces: (trainerId: number, orderedIds: number[]) => Promise<ApiResponseWrapper<null>>
+    readonly reorderSpaces: (trainerId: number, parentSpaceId: number | null, orderedIds: number[]) => Promise<ApiResponseWrapper<null>>
 }
 
 
@@ -29,14 +30,15 @@ export const spaceService: _SpaceService = Object.freeze({
             const spaces = await SpaceModel.findByTrainerId(trainerId)
             const pokemonRows = await PokemonModel.findByTrainerId(trainerId)
 
-            const spaceList = spaces.map(space => SpaceMapper.mapToApiResponse(
-                space,
-                pokemonRows
-                    .filter(pokemon => pokemon.spaceId === space.id)
-                    .map(PokemonMapper.mapToApiResponse),
-            ))
+            const pokemonBySpaceId = new Map<number, PokemonApiResponse[]>()
+            pokemonRows.forEach(pokemon => {
+                const mapped = PokemonMapper.mapToApiResponse(pokemon)
+                const existing = pokemonBySpaceId.get(pokemon.spaceId) ?? []
+                existing.push(mapped)
+                pokemonBySpaceId.set(pokemon.spaceId, existing)
+            })
 
-            return ApiResponseFactory.success(spaceList, "Space List")
+            return ApiResponseFactory.success(SpaceMapper.buildTree(spaces, pokemonBySpaceId), "Space List")
         } catch {
             return ApiResponseFactory.failure(500, "Failed to load spaces")
         }
@@ -47,13 +49,21 @@ export const spaceService: _SpaceService = Object.freeze({
             const trainer = await TrainerModel.getById(addSpaceInput.trainerId)
             if (!trainer) return ApiResponseFactory.failure(404, "Trainer not found")
 
+            if (addSpaceInput.parentSpaceId !== null) {
+                const parentSpace = await SpaceModel.getById(addSpaceInput.parentSpaceId)
+                if (!parentSpace || parentSpace.trainerId !== addSpaceInput.trainerId) {
+                    return ApiResponseFactory.failure(400, "Parent space does not belong to this trainer")
+                }
+            }
+
             const space = await new SpaceModel({
                 trainerId: addSpaceInput.trainerId,
+                parentSpaceId: addSpaceInput.parentSpaceId,
                 name: addSpaceInput.name,
                 metLocation: addSpaceInput.metLocation,
             }).save()
 
-            return ApiResponseFactory.success(SpaceMapper.mapToApiResponse(space, []), "Space added")
+            return ApiResponseFactory.success(SpaceMapper.mapToApiResponse(space, [], []), "Space added")
         } catch {
             return ApiResponseFactory.failure(500, "Failed to add space")
         }
@@ -72,7 +82,7 @@ export const spaceService: _SpaceService = Object.freeze({
 
             const pokemonRows = await PokemonModel.findBySpaceId(updated.id)
             return ApiResponseFactory.success(
-                SpaceMapper.mapToApiResponse(updated, pokemonRows.map(PokemonMapper.mapToApiResponse)),
+                SpaceMapper.mapToApiResponse(updated, pokemonRows.map(PokemonMapper.mapToApiResponse), []),
                 "Space updated",
             )
         } catch {
@@ -92,15 +102,17 @@ export const spaceService: _SpaceService = Object.freeze({
         }
     },
 
-    reorderSpaces: async (trainerId: number, orderedIds: number[]) => {
+    reorderSpaces: async (trainerId: number, parentSpaceId: number | null, orderedIds: number[]) => {
         try {
-            const existingSpaces = await SpaceModel.findByTrainerId(trainerId)
-            const existingIds = new Set(existingSpaces.map(space => space.id))
+            const allSpaces = await SpaceModel.findByTrainerId(trainerId)
+            const siblingIds = new Set(
+                allSpaces.filter(space => space.parentSpaceId === parentSpaceId).map(space => space.id),
+            )
 
-            const isValidPermutation = orderedIds.length === existingIds.size
-                && orderedIds.every(id => existingIds.has(id))
+            const isValidPermutation = orderedIds.length === siblingIds.size
+                && orderedIds.every(id => siblingIds.has(id))
 
-            if (!isValidPermutation) return ApiResponseFactory.failure(400, "orderedIds must match the trainer's spaces exactly")
+            if (!isValidPermutation) return ApiResponseFactory.failure(400, "orderedIds must match the parent's direct child spaces exactly")
 
             await SpaceModel.reorder(orderedIds)
             return ApiResponseFactory.success(null, "Spaces reordered")

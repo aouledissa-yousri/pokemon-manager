@@ -15,6 +15,7 @@ import { spaceProxy } from "@/src/domains/trainer-management/space/proxies/space
 import { useSpaceStore } from "@/src/domains/trainer-management/space/store/space.store"
 import { SpaceApiResponse } from "@/src/domains/trainer-management/space/DTOs/api-responses/space.api-response"
 import { SpaceDisplayHelper } from "@/src/domains/trainer-management/space/helpers/space-display.helper"
+import { SpaceTreeHelper } from "@/src/domains/trainer-management/space/helpers/space-tree.helper"
 import { pokemonProxy } from "@/src/domains/pokemon-management/pokemon/proxies/pokemon.proxy"
 import { PokemonApiResponse } from "@/src/domains/pokemon-management/pokemon/DTOs/api-responses/pokemon.api-response"
 import { NameFormatHelper } from "@/src/domains/pokedex/shared/helpers/name-format.helper"
@@ -35,6 +36,12 @@ import { EditPokemonDialogComponent } from "./components/edit-pokemon-dialog/edi
 import { useEditPokemonDialogStore } from "./components/edit-pokemon-dialog/edit-pokemon.dialog.component.store"
 import { CopyPokemonDialogComponent } from "./components/copy-pokemon-dialog/copy-pokemon.dialog.component"
 import { useCopyPokemonDialogStore } from "./components/copy-pokemon-dialog/copy-pokemon.dialog.component.store"
+
+
+interface DragItemData {
+    readonly type: "space" | "pokemon"
+    readonly containerId: number | null
+}
 
 
 export default function TrainerDetailPage() {
@@ -58,9 +65,11 @@ export default function TrainerDetailPage() {
     const removePokemonFromStore = useSpaceStore(state => state.removePokemon)
     const removeSpaceFromStore = useSpaceStore(state => state.removeSpace)
     const reorderSpacesInStore = useSpaceStore(state => state.reorderSpaces)
+    const reorderPokemonInStore = useSpaceStore(state => state.reorderPokemon)
     const clearStore = useSpaceStore(state => state.clearStore)
 
-    const pokemonCount = spaces.reduce((sum, space) => sum + space.pokemon.length, 0)
+    const pokemonCount = SpaceTreeHelper.countAllPokemon(spaces)
+    const spaceCount = SpaceTreeHelper.countAllSpaces(spaces)
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
@@ -149,21 +158,49 @@ export default function TrainerDetailPage() {
         setSpaceToRemove(null)
     }
 
-    const handleSpaceDragEnd = async (event: DragEndEvent) => {
+    const handleDragEnd = async (event: DragEndEvent) => {
 
         const { active, over } = event
         if (!over || active.id === over.id) return
 
-        const oldIndex = spaces.findIndex(space => space.id === active.id)
-        const newIndex = spaces.findIndex(space => space.id === over.id)
+        const activeData = active.data.current as DragItemData | undefined
+        const overData = over.data.current as DragItemData | undefined
+
+        if (!activeData || !overData) return
+        if (activeData.type !== overData.type || activeData.containerId !== overData.containerId) return
+
+        if (activeData.type === "pokemon") {
+
+            const space = SpaceTreeHelper.findSpaceById(spaces, activeData.containerId as number)
+            if (!space) return
+
+            const oldIndex = space.pokemon.findIndex(pokemon => pokemon.id === active.id)
+            const newIndex = space.pokemon.findIndex(pokemon => pokemon.id === over.id)
+            if (oldIndex === -1 || newIndex === -1) return
+
+            const orderedIds = arrayMove(space.pokemon, oldIndex, newIndex).map(pokemon => pokemon.id)
+            reorderPokemonInStore(space.id, orderedIds)
+
+            const response = await pokemonProxy.reorderPokemon(space.id, orderedIds)
+            if (!response.success) {
+                toast.show(response.message, "error")
+                fetchSpaces()
+            }
+            return
+        }
+
+        const siblings = activeData.containerId === null
+            ? spaces
+            : SpaceTreeHelper.findSpaceById(spaces, activeData.containerId)?.childSpaces ?? []
+
+        const oldIndex = siblings.findIndex(space => space.id === active.id)
+        const newIndex = siblings.findIndex(space => space.id === over.id)
         if (oldIndex === -1 || newIndex === -1) return
 
-        const reordered = arrayMove(spaces, oldIndex, newIndex)
-        const orderedIds = reordered.map(space => space.id)
+        const orderedIds = arrayMove(siblings, oldIndex, newIndex).map(space => space.id)
+        reorderSpacesInStore(activeData.containerId, orderedIds)
 
-        reorderSpacesInStore(orderedIds)
-
-        const response = await spaceProxy.reorderSpaces(trainerId, orderedIds)
+        const response = await spaceProxy.reorderSpaces(trainerId, activeData.containerId, orderedIds)
         if (!response.success) {
             toast.show(response.message, "error")
             fetchSpaces()
@@ -176,7 +213,7 @@ export default function TrainerDetailPage() {
             <PageHeaderComponent
                 label="Trainer Roster"
                 title={trainer?.name ?? "…"}
-                subtitle={`${spaces.length} ${spaces.length === 1 ? "space" : "spaces"} · ${pokemonCount} Pokemon`}
+                subtitle={`${spaceCount} ${spaceCount === 1 ? "space" : "spaces"} · ${pokemonCount} Pokemon`}
                 backAction={
                     <Button
                         startIcon={<ArrowBackRoundedIcon />}
@@ -226,16 +263,21 @@ export default function TrainerDetailPage() {
             }
 
             {!isLoading && spaces.length > 0 &&
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSpaceDragEnd}>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={spaces.map(space => space.id)} strategy={verticalListSortingStrategy}>
                         <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
                             {spaces.map(space => (
-                                <SortableItemComponent key={space.id} id={space.id}>
+                                <SortableItemComponent
+                                    key={space.id}
+                                    id={space.id}
+                                    data={{ type: "space", containerId: null }}
+                                >
                                     <SpaceSectionComponent
                                         space={space}
-                                        onAddPokemon={() => useAddPokemonDialogStore.getState().openDialog(space.id)}
-                                        onEditSpace={() => useEditSpaceDialogStore.getState().openDialog(space)}
-                                        onRemoveSpace={() => setSpaceToRemove(space)}
+                                        onAddPokemon={(targetSpace) => useAddPokemonDialogStore.getState().openDialog(targetSpace.id)}
+                                        onAddChildSpace={(targetSpace) => useAddSpaceDialogStore.getState().openDialog(targetSpace.trainerId, targetSpace.id)}
+                                        onEditSpace={(targetSpace) => useEditSpaceDialogStore.getState().openDialog(targetSpace)}
+                                        onRemoveSpace={(targetSpace) => setSpaceToRemove(targetSpace)}
                                         onEditPokemon={(pokemon) => useEditPokemonDialogStore.getState().openDialog(pokemon)}
                                         onCopyPokemon={(pokemon) => useCopyPokemonDialogStore.getState().openDialog(pokemon)}
                                         onRemovePokemon={(pokemon) => setPokemonToRemove(pokemon)}
@@ -258,7 +300,7 @@ export default function TrainerDetailPage() {
             <ConfirmDialogComponent
                 open={!!spaceToRemove}
                 title="Remove space"
-                message={`Remove ${spaceToRemove ? SpaceDisplayHelper.getDisplayName(spaceToRemove) : "this space"} and all ${spaceToRemove?.pokemon.length ?? 0} of its forms? This cannot be undone.`}
+                message={`Remove ${spaceToRemove ? SpaceDisplayHelper.getDisplayName(spaceToRemove) : "this space"} and all ${spaceToRemove?.pokemon.length ?? 0} of its forms${spaceToRemove?.childSpaces.length ? `, plus ${spaceToRemove.childSpaces.length} nested ${spaceToRemove.childSpaces.length === 1 ? "space" : "spaces"},` : ""} ? This cannot be undone.`}
                 confirmText="Remove"
                 isDestructive
                 onConfirm={handleRemoveSpace}

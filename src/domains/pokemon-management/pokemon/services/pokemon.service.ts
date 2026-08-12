@@ -18,6 +18,7 @@ interface _PokemonService {
     readonly editPokemon: (editPokemonInput: EditPokemonInput) => Promise<ApiResponseWrapper<PokemonApiResponse | null>>
     readonly removePokemon: (pokemonId: number) => Promise<ApiResponseWrapper<null>>
     readonly copyPokemon: (copyPokemonInput: CopyPokemonInput) => Promise<ApiResponseWrapper<PokemonApiResponse | null>>
+    readonly reorderPokemon: (spaceId: number, orderedIds: number[]) => Promise<ApiResponseWrapper<null>>
 }
 
 
@@ -124,6 +125,23 @@ export const pokemonService: _PokemonService = Object.freeze({
             return ApiResponseFactory.success(PokemonMapper.mapToApiResponse(copy), `Copied to ${targetTrainer.name}`)
         } catch {
             return ApiResponseFactory.failure(500, "Failed to copy Pokemon")
+        }
+    },
+
+    reorderPokemon: async (spaceId: number, orderedIds: number[]) => {
+        try {
+            const existingPokemon = await PokemonModel.findBySpaceId(spaceId)
+            const existingIds = new Set(existingPokemon.map(pokemon => pokemon.id))
+
+            const isValidPermutation = orderedIds.length === existingIds.size
+                && orderedIds.every(id => existingIds.has(id))
+
+            if (!isValidPermutation) return ApiResponseFactory.failure(400, "orderedIds must match the space's Pokemon exactly")
+
+            await PokemonModel.reorder(orderedIds)
+            return ApiResponseFactory.success(null, "Pokemon reordered")
+        } catch {
+            return ApiResponseFactory.failure(500, "Failed to reorder Pokemon")
         }
     },
 })

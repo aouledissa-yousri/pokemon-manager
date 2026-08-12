@@ -41,7 +41,7 @@ export class PokemonModel extends PersistenceModel<PokemonDocument> {
             .select()
             .from(PokemonSchema)
             .where(eq(PokemonSchema.spaceId, spaceId))
-            .orderBy(asc(PokemonSchema.id))
+            .orderBy(asc(PokemonSchema.sortOrder))
             .all()
     }
 
@@ -52,10 +52,21 @@ export class PokemonModel extends PersistenceModel<PokemonDocument> {
             .from(PokemonSchema)
             .innerJoin(SpaceSchema, eq(PokemonSchema.spaceId, SpaceSchema.id))
             .where(eq(SpaceSchema.trainerId, trainerId))
-            .orderBy(asc(PokemonSchema.id))
+            .orderBy(asc(PokemonSchema.sortOrder))
             .all()
 
         return rows.map(row => row.pokemon)
+    }
+
+    public static async reorder(pokemonIds: number[]): Promise<void> {
+
+        const db = DatabaseFactory.getDatabase()
+
+        db.transaction((tx) => {
+            pokemonIds.forEach((id, index) => {
+                tx.update(PokemonSchema).set({ sortOrder: index }).where(eq(PokemonSchema.id, id)).run()
+            })
+        })
     }
 
     public static async copyToSpace(pokemonId: number, targetSpaceId: number): Promise<PokemonDocument | null> {

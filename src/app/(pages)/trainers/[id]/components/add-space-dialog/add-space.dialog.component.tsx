@@ -19,6 +19,7 @@ export function AddSpaceDialogComponent() {
 
     const open = useAddSpaceDialogStore(state => state.open)
     const trainerId = useAddSpaceDialogStore(state => state.trainerId)
+    const parentSpaceId = useAddSpaceDialogStore(state => state.parentSpaceId)
     const closeDialog = useAddSpaceDialogStore(state => state.closeDialog)
 
     const upsertSpace = useSpaceStore(state => state.upsertSpace)
@@ -43,7 +44,7 @@ export function AddSpaceDialogComponent() {
         setIsSubmitting(true)
 
         try {
-            const response = await spaceProxy.addSpace({ trainerId, ...values })
+            const response = await spaceProxy.addSpace({ trainerId, parentSpaceId, ...values })
 
             if (response.success && response.data) {
                 toast.show("Space added", "success")
@@ -63,7 +64,7 @@ export function AddSpaceDialogComponent() {
         <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
 
             <DialogTitle sx={{ fontWeight: GlobalConfig.fontWeights.bold, fontSize: 20 }}>
-                Add Space
+                {parentSpaceId === null ? "Add Space" : "Add Nested Space"}
                 <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
                     A space holds one Pokemon and whichever of its forms you add
                 </Typography>

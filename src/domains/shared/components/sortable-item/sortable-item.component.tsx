@@ -15,7 +15,7 @@ export function SortableItemComponent(props: SortableItemComponentProps) {
     const theme = useTheme()
     const themeConfig = theme.palette.mode === "dark" ? DarkThemeConfig : LightThemeConfig
 
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.id })
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.id, data: props.data })
 
     return (
         <Box

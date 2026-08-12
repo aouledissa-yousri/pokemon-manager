@@ -16,6 +16,7 @@ interface _PokemonProxy {
     readonly editPokemon: (editPokemonInput: EditPokemonInput) => Promise<ApiResponseWrapper<PokemonApiResponse | null>>
     readonly removePokemon: (pokemonId: number) => Promise<ApiResponseWrapper<null>>
     readonly copyPokemon: (copyPokemonInput: CopyPokemonInput) => Promise<ApiResponseWrapper<PokemonApiResponse | null>>
+    readonly reorderPokemon: (spaceId: number, orderedIds: number[]) => Promise<ApiResponseWrapper<null>>
 }
 
 
@@ -52,6 +53,11 @@ export const pokemonProxy: _PokemonProxy = Object.freeze({
             targetTrainerId: copyPokemonInput.targetTrainerId,
             targetSpaceId: copyPokemonInput.targetSpaceId,
         })
+        return response.data
+    },
+
+    reorderPokemon: async (spaceId: number, orderedIds: number[]) => {
+        const response = await pokemonApi.patch("/reorder", { spaceId, orderedIds })
         return response.data
     },
 })

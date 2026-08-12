@@ -4,9 +4,10 @@ import { PokemonApiResponse } from "@/src/domains/pokemon-management/pokemon/DTO
 
 export interface SpaceSectionComponentProps {
     readonly space: SpaceApiResponse
-    readonly onAddPokemon: () => void
-    readonly onEditSpace: () => void
-    readonly onRemoveSpace: () => void
+    readonly onAddPokemon: (space: SpaceApiResponse) => void
+    readonly onAddChildSpace: (space: SpaceApiResponse) => void
+    readonly onEditSpace: (space: SpaceApiResponse) => void
+    readonly onRemoveSpace: (space: SpaceApiResponse) => void
     readonly onEditPokemon: (pokemon: PokemonApiResponse) => void
     readonly onCopyPokemon: (pokemon: PokemonApiResponse) => void
     readonly onRemovePokemon: (pokemon: PokemonApiResponse) => void

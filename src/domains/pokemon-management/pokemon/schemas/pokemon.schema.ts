@@ -37,6 +37,8 @@ export const PokemonSchema = sqliteTable("pokemon", {
     evSpecialDefense: integer("ev_special_defense").notNull().default(0),
     evSpeed: integer("ev_speed").notNull().default(0),
 
+    sortOrder: integer("sort_order").notNull().default(0),
+
     createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
     updatedAt: text("updated_at").notNull().default(sql`(datetime('now'))`),
 }, (table) => [

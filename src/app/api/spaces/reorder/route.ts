@@ -16,6 +16,16 @@ export async function PATCH(request: Request) {
         return Response.json(failure, { status: failure.statusCode })
     }
 
-    const response = await spaceService.reorderSpaces(trainerId, orderedIds)
+    const rawParentSpaceId = body?.parentSpaceId
+    const parentSpaceId = rawParentSpaceId === null || rawParentSpaceId === undefined
+        ? null
+        : Number.parseInt(`${rawParentSpaceId}`, 10)
+
+    if (parentSpaceId !== null && Number.isNaN(parentSpaceId)) {
+        const failure = ApiResponseFactory.failure(400, "parentSpaceId must be a number or null")
+        return Response.json(failure, { status: failure.statusCode })
+    }
+
+    const response = await spaceService.reorderSpaces(trainerId, parentSpaceId, orderedIds)
     return Response.json(response, { status: response.statusCode })
 }
