@@ -189,37 +189,45 @@ export function PokemonRosterCardComponent(props: PokemonRosterCardComponentProp
                     </Typography>
                 </Box>
 
-                <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end", mt: 0.5 }}>
-                    <Tooltip title="Edit build & stats">
-                        <IconButton
-                            size="small"
-                            onClick={props.onEdit}
-                            sx={{ color: "text.secondary", "&:hover": { color: themeConfig.accentColor } }}
-                        >
-                            <TuneRoundedIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
+                {(props.onEdit || props.onCopy || props.onRemove) &&
+                    <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end", mt: 0.5 }}>
+                        {props.onEdit &&
+                            <Tooltip title="Edit build & stats">
+                                <IconButton
+                                    size="small"
+                                    onClick={props.onEdit}
+                                    sx={{ color: "text.secondary", "&:hover": { color: themeConfig.accentColor } }}
+                                >
+                                    <TuneRoundedIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        }
 
-                    <Tooltip title="Copy to another trainer">
-                        <IconButton
-                            size="small"
-                            onClick={props.onCopy}
-                            sx={{ color: "text.secondary", "&:hover": { color: themeConfig.accentColor } }}
-                        >
-                            <ContentCopyRoundedIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
+                        {props.onCopy &&
+                            <Tooltip title="Copy to another trainer">
+                                <IconButton
+                                    size="small"
+                                    onClick={props.onCopy}
+                                    sx={{ color: "text.secondary", "&:hover": { color: themeConfig.accentColor } }}
+                                >
+                                    <ContentCopyRoundedIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        }
 
-                    <Tooltip title="Release">
-                        <IconButton
-                            size="small"
-                            onClick={props.onRemove}
-                            sx={{ color: "text.secondary", "&:hover": { color: theme.palette.error.main } }}
-                        >
-                            <DeleteRoundedIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
-                </Stack>
+                        {props.onRemove &&
+                            <Tooltip title="Release">
+                                <IconButton
+                                    size="small"
+                                    onClick={props.onRemove}
+                                    sx={{ color: "text.secondary", "&:hover": { color: theme.palette.error.main } }}
+                                >
+                                    <DeleteRoundedIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        }
+                    </Stack>
+                }
             </Box>
         </GlassCardComponent>
     )

@@ -1,5 +1,11 @@
 import { SpaceApiResponse } from "../DTOs/api-responses/space.api-response"
+import { PokemonApiResponse } from "../../../pokemon-management/pokemon/DTOs/api-responses/pokemon.api-response"
 
+
+export interface PokemonWithSpace {
+    readonly pokemon: PokemonApiResponse
+    readonly space: SpaceApiResponse
+}
 
 interface _SpaceTreeHelper {
     readonly findSpaceById: (spaces: SpaceApiResponse[], spaceId: number) => SpaceApiResponse | null
@@ -8,6 +14,7 @@ interface _SpaceTreeHelper {
     readonly mapAllSpaces: (spaces: SpaceApiResponse[], transform: (space: SpaceApiResponse) => SpaceApiResponse) => SpaceApiResponse[]
     readonly countAllSpaces: (spaces: SpaceApiResponse[]) => number
     readonly countAllPokemon: (spaces: SpaceApiResponse[]) => number
+    readonly getAllPokemonWithSpace: (spaces: SpaceApiResponse[]) => PokemonWithSpace[]
 }
 
 export const SpaceTreeHelper: _SpaceTreeHelper = Object.freeze({
@@ -54,5 +61,14 @@ export const SpaceTreeHelper: _SpaceTreeHelper = Object.freeze({
     countAllPokemon: (spaces: SpaceApiResponse[]): number => spaces.reduce(
         (sum, space) => sum + space.pokemon.length + SpaceTreeHelper.countAllPokemon(space.childSpaces),
         0,
+    ),
+
+    getAllPokemonWithSpace: (spaces: SpaceApiResponse[]): PokemonWithSpace[] => spaces.reduce(
+        (entries: PokemonWithSpace[], space) => [
+            ...entries,
+            ...space.pokemon.map(pokemon => ({ pokemon, space })),
+            ...SpaceTreeHelper.getAllPokemonWithSpace(space.childSpaces),
+        ],
+        [],
     ),
 })

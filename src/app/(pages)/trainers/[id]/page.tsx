@@ -6,6 +6,7 @@ import { Box, Button, Container, Skeleton } from "@mui/material"
 import AddRoundedIcon from "@mui/icons-material/AddRounded"
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded"
 import CatchingPokemonRoundedIcon from "@mui/icons-material/CatchingPokemonRounded"
+import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded"
 import { DndContext, DragEndEvent, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core"
 import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable"
 
@@ -225,14 +226,24 @@ export default function TrainerDetailPage() {
                     </Button>
                 }
                 action={
-                    <Button
-                        variant="contained"
-                        disableElevation
-                        startIcon={<AddRoundedIcon />}
-                        onClick={() => useAddSpaceDialogStore.getState().openDialog(trainerId)}
-                    >
-                        Add Space
-                    </Button>
+                    <Box sx={{ display: "flex", gap: 1.5 }}>
+                        <Button
+                            variant="outlined"
+                            startIcon={<GroupsRoundedIcon />}
+                            onClick={() => router.push(ClientRoutesConfig.TRAINER_TEAM(trainerId))}
+                        >
+                            Build Team
+                        </Button>
+
+                        <Button
+                            variant="contained"
+                            disableElevation
+                            startIcon={<AddRoundedIcon />}
+                            onClick={() => useAddSpaceDialogStore.getState().openDialog(trainerId)}
+                        >
+                            Add Space
+                        </Button>
+                    </Box>
                 }
             />
 
