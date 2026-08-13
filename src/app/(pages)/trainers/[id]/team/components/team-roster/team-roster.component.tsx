@@ -10,17 +10,21 @@ export function TeamRosterComponent(props: TeamRosterComponentProps) {
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
 
-            <Typography
-                sx={{
-                    fontSize: 11,
-                    fontWeight: GlobalConfig.fontWeights.bold,
-                    letterSpacing: "0.14em",
-                    textTransform: "uppercase",
-                    color: "text.secondary",
-                }}
-            >
-                Your Roster
-            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
+                <Typography
+                    sx={{
+                        fontSize: 11,
+                        fontWeight: GlobalConfig.fontWeights.bold,
+                        letterSpacing: "0.14em",
+                        textTransform: "uppercase",
+                        color: "text.secondary",
+                    }}
+                >
+                    Your Roster
+                </Typography>
+
+                {props.action}
+            </Box>
 
             <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 2.5 }}>
                 {props.pokemonList.map(pokemon => (

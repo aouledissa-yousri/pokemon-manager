@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { Box, Button, Container, Skeleton } from "@mui/material"
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded"
 import CatchingPokemonRoundedIcon from "@mui/icons-material/CatchingPokemonRounded"
+import IosShareRoundedIcon from "@mui/icons-material/IosShareRounded"
 
 import { trainerProxy } from "@/src/domains/trainer-management/trainer/proxies/trainer.proxy"
 import { TrainerApiResponse } from "@/src/domains/trainer-management/trainer/DTOs/api-responses/trainer.api-response"
@@ -27,6 +28,8 @@ import { TypeCoveragePanelComponent } from "./components/type-coverage-panel/typ
 import { TypeDistributionPanelComponent } from "./components/type-distribution-panel/type-distribution-panel.component"
 import { WeaknessesPanelComponent } from "./components/weaknesses-panel/weaknesses-panel.component"
 import { MoveDistributionPanelComponent } from "./components/move-distribution-panel/move-distribution-panel.component"
+import { PokepasteDialogComponent } from "./components/pokepaste-dialog/pokepaste.dialog.component"
+import { usePokepasteDialogStore } from "./components/pokepaste-dialog/pokepaste.dialog.component.store"
 
 
 export default function TeamBuilderPage() {
@@ -206,7 +209,20 @@ export default function TeamBuilderPage() {
                     }
 
                     {selectedPokemon.length > 0 &&
-                        <TeamRosterComponent pokemonList={selectedPokemon} onToggleShiny={handleToggleShiny} />
+                        <TeamRosterComponent
+                            pokemonList={selectedPokemon}
+                            onToggleShiny={handleToggleShiny}
+                            action={
+                                <Button
+                                    size="small"
+                                    variant="outlined"
+                                    startIcon={<IosShareRoundedIcon />}
+                                    onClick={() => usePokepasteDialogStore.getState().openDialog(selectedPokemon)}
+                                >
+                                    Share as Pokepaste
+                                </Button>
+                            }
+                        />
                     }
 
                     {selectedPokemon.length > 0 && !isAnalysisReady &&
@@ -239,6 +255,9 @@ export default function TeamBuilderPage() {
                     }
                 </Box>
             }
+
+            {/* Dialogs — mounted once, self-contained via Zustand stores */}
+            <PokepasteDialogComponent />
         </Container>
     )
 }
